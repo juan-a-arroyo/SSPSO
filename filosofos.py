@@ -2,84 +2,72 @@ import threading
 import time
 import random
 
+LIMITE_COMIDAS = 6
+
 class Filosofo(threading.Thread):
     
-    # Añadimos id_tenedor_izq y id_tenedor_der para guardar los NÚMEROS
-    def __init__(self, id_filosofo, tenedor_izq, id_tenedor_izq, tenedor_der, id_tenedor_der, numero_filosofos): # <-- CAMBIO
+    def __init__(self, id_filosofo, tenedor_izq, id_tenedor_izq, tenedor_der, id_tenedor_der, numero_filosofos):
         super().__init__()
         self.id = id_filosofo
         self.tenedor_izq = tenedor_izq
         self.tenedor_der = tenedor_der
-        
-        # Guardamos los IDs de los tenedores aquí
-        self.id_tenedor_izq = id_tenedor_izq # <-- CAMBIO
-        self.id_tenedor_der = id_tenedor_der # <-- CAMBIO
-        
+        self.id_tenedor_izq = id_tenedor_izq
+        self.id_tenedor_der = id_tenedor_der
         self.es_el_ultimo_filosofo = (id_filosofo == numero_filosofos - 1)
+        self.veces_comidas = 0
 
     def run(self):
-        while True:
+        while self.veces_comidas < LIMITE_COMIDAS:
             self.pensar()
             self.comer()
+        print(f"Filósofo {self.id} terminó su ciclo (comió {self.veces_comidas} veces).")
 
     def pensar(self):
         print(f"Filósofo {self.id} está pensando.")
         time.sleep(random.uniform(1, 3))
 
     def comer(self):
-        print(f"Filósofo {self.id} tiene hambre y quiere comer.")
+        print(f"Filósofo {self.id} tiene hambre y quiere comer (intento {self.veces_comidas + 1}).")
 
         if self.es_el_ultimo_filosofo:
-            # ¡Solución Asimétrica! El último filósofo toma el tenedor DERECHO primero.
-            # Usamos el ID guardado en el filósofo, no en el tenedor
-            print(f"Filósofo {self.id} (el último) intenta tomar tenedor DERECHO {self.id_tenedor_der}.") # <-- CAMBIO
+            print(f"Filósofo {self.id} (el último) intenta tomar tenedor DERECHO {self.id_tenedor_der}.")
             self.tenedor_der.acquire()
-            print(f"Filósofo {self.id} (el último) intenta tomar tenedor IZQUIERDO {self.id_tenedor_izq}.") # <-- CAMBIO
+            print(f"Filósofo {self.id} (el último) intenta tomar tenedor IZQUIERDO {self.id_tenedor_izq}.")
             self.tenedor_izq.acquire()
         else:
-            # Todos los demás filósofos toman el tenedor IZQUIERDO primero.
-            print(f"Filósofo {self.id} intenta tomar tenedor IZQUIERDO {self.id_tenedor_izq}.") # <-- CAMBIO
+            print(f"Filósofo {self.id} intenta tomar tenedor IZQUIERDO {self.id_tenedor_izq}.")
             self.tenedor_izq.acquire()
-            print(f"Filósofo {self.id} intenta tomar tenedor DERECHO {self.id_tenedor_der}.") # <-- CAMBIO
+            print(f"Filósofo {self.id} intenta tomar tenedor DERECHO {self.id_tenedor_der}.")
             self.tenedor_der.acquire()
-
-        # Si el código llega aquí, el filósofo tiene ambos tenedores
-        print(f"--- Filósofo {self.id} está COMIENDO. ---")
+        self.veces_comidas += 1
+        print(f"--- Filósofo {self.id} está COMIENDO (vez {self.veces_comidas}). ---")
         time.sleep(random.uniform(1, 4))
-        print(f"--- Filósofo {self.id} terminó de comer y suelta los tenedores. ---")
-
-        # Libera los tenedores
+        print(f"--- Filósofo {self.id} terminó de comer (vez {self.veces_comidas}) y suelta los tenedores. ---")
         self.tenedor_izq.release()
         self.tenedor_der.release()
 
-# --- Configuración de la simulación ---
-
 NUM_FILOSOFOS = 5
 tenedores = []
-
-# Crear los tenedores (Locks)
 for i in range(NUM_FILOSOFOS):
     tenedor = threading.Lock()
-    # tenedor._ident = i  <-- ELIMINAMOS ESTA LÍNEA ERRÓNEA
     tenedores.append(tenedor)
 
 filosofos = []
 
-# Crear e iniciar los filósofos (Threads)
+print(f"Iniciando simulación: {NUM_FILOSOFOS} filósofos, deben comer {LIMITE_COMIDAS} veces cada uno.")
 for i in range(NUM_FILOSOFOS):
-    # Definimos los IDs de los tenedores aquí
-    id_tenedor_izq = i # <-- CAMBIO
-    id_tenedor_der = (i + 1) % NUM_FILOSOFOS # <-- CAMBIO
+    id_tenedor_izq = i
+    id_tenedor_der = (i + 1) % NUM_FILOSOFOS
     
-    # Obtenemos los objetos Lock
     tenedor_izq = tenedores[id_tenedor_izq]
     tenedor_der = tenedores[id_tenedor_der]
     
-    # Pasamos los objetos Lock Y sus IDs al constructor
-    filosofo = Filosofo(i, tenedor_izq, id_tenedor_izq, tenedor_der, id_tenedor_der, NUM_FILOSOFOS) # <-- CAMBIO
+    filosofo = Filosofo(i, tenedor_izq, id_tenedor_izq, tenedor_der, id_tenedor_der, NUM_FILOSOFOS)
     filosofos.append(filosofo)
-    filosofo.start() # Inicia el hilo
-
-# Esperar a que todos los hilos terminen
+    filosofo.start()
 for filosofo in filosofos:
     filosofo.join()
+print("\n-----------------------------------------------------")
+print(f"Todos los filósofos han comido {LIMITE_COMIDAS} veces.")
+print("La simulación ha terminado.")
+print("-----------------------------------------------------")
