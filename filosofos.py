@@ -1,6 +1,4 @@
-import threading
-import time
-import random
+import threading, time, random
 
 LIMITE_COMIDAS = 6
 
