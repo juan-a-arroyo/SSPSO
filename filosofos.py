@@ -1,0 +1,74 @@
+import threading
+import time
+import random
+
+LIMITE_COMIDAS = 6
+
+class Filosofo(threading.Thread):
+    
+    def __init__(self, id_filosofo, tenedor_izq, id_tenedor_izq, tenedor_der, id_tenedor_der, numero_filosofos):
+        super().__init__()
+        self.id = id_filosofo
+        self.tenedor_izq = tenedor_izq
+        self.tenedor_der = tenedor_der
+        self.id_tenedor_izq = id_tenedor_izq
+        self.id_tenedor_der = id_tenedor_der
+        self.es_el_ultimo_filosofo = (id_filosofo == numero_filosofos - 1)
+        self.veces_comidas = 0
+
+    def run(self):
+        while self.veces_comidas < LIMITE_COMIDAS:
+            self.pensar()
+            self.comer()
+        print(f"Filósofo {self.id} terminó su ciclo (comió {self.veces_comidas} veces).")
+
+    def pensar(self):
+        print(f"Filósofo {self.id} está pensando.")
+        time.sleep(random.uniform(1, 3))
+
+    def comer(self):
+        print(f"Filósofo {self.id} tiene hambre y quiere comer (intento {self.veces_comidas + 1}).")
+
+        if self.es_el_ultimo_filosofo:
+            print(f"Filósofo {self.id} (el último) intenta tomar tenedor DERECHO {self.id_tenedor_der}.")
+            self.tenedor_der.acquire()
+            print(f"Filósofo {self.id} (el último) intenta tomar tenedor IZQUIERDO {self.id_tenedor_izq}.")
+            self.tenedor_izq.acquire()
+        else:
+            print(f"Filósofo {self.id} intenta tomar tenedor IZQUIERDO {self.id_tenedor_izq}.")
+            self.tenedor_izq.acquire()
+            print(f"Filósofo {self.id} intenta tomar tenedor DERECHO {self.id_tenedor_der}.")
+            self.tenedor_der.acquire()
+        self.veces_comidas += 1
+        print(f"--- Filósofo {self.id} está COMIENDO (vez {self.veces_comidas}). ---")
+        time.sleep(random.uniform(1, 4))
+        print(f"--- Filósofo {self.id} terminó de comer (vez {self.veces_comidas}) y suelta los tenedores. ---")
+        self.tenedor_izq.release()
+        self.tenedor_der.release()
+
+NUM_FILOSOFOS = 5
+tenedores = []
+for i in range(NUM_FILOSOFOS):
+    tenedor = threading.Lock()
+    tenedores.append(tenedor)
+
+filosofos = []
+
+print(f"Iniciando simulación: {NUM_FILOSOFOS} filósofos, deben comer {LIMITE_COMIDAS} veces cada uno.")
+for i in range(NUM_FILOSOFOS):
+    id_tenedor_izq = i
+    id_tenedor_der = (i + 1) % NUM_FILOSOFOS
+    
+    tenedor_izq = tenedores[id_tenedor_izq]
+    tenedor_der = tenedores[id_tenedor_der]
+    
+    filosofo = Filosofo(i, tenedor_izq, id_tenedor_izq, tenedor_der, id_tenedor_der, NUM_FILOSOFOS)
+    filosofos.append(filosofo)
+    filosofo.start()
+for filosofo in filosofos:
+    filosofo.join()
+    
+print("\n-----------------------------------------------------")
+print(f"Todos los filósofos han comido {LIMITE_COMIDAS} veces.")
+print("La simulación ha terminado.")
+print("-----------------------------------------------------")
